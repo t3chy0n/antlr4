@@ -31,7 +31,7 @@ func intMax(a, b int) int {
 
 type IntStack []int
 
-var ErrEmptyStack = errors.New("Stack is empty")
+var ErrEmptyStack = errors.New("stack is empty")
 
 func (s *IntStack) Pop() (int, error) {
 	l := len(*s) - 1
@@ -47,12 +47,8 @@ func (s *IntStack) Push(e int) {
 	*s = append(*s, e)
 }
 
-type comparable interface {
-	Equals(other Collectable[any]) bool
-}
-
 func standardEqualsFunction(a Collectable[any], b Collectable[any]) bool {
-
+	
 	return a.Equals(b)
 }
 
@@ -60,8 +56,7 @@ func standardHashFunction(a interface{}) int {
 	if h, ok := a.(hasher); ok {
 		return h.Hash()
 	}
-
-	panic("Not Hasher")
+	panic("Not 'Hasher'")
 }
 
 type hasher interface {
@@ -74,6 +69,7 @@ func indexForBit(bit int) int {
 	return bit / bitsPerWord
 }
 
+//goland:noinspection GoUnusedExportedFunction,GoUnusedFunction
 func wordForBit(data []uint64, bit int) uint64 {
 	idx := indexForBit(bit)
 	if idx >= len(data) {
@@ -94,6 +90,8 @@ type BitSet struct {
 	data []uint64
 }
 
+// NewBitSet creates a new bitwise set
+// TODO: See if we can replace with the standard library's BitSet
 func NewBitSet() *BitSet {
 	return &BitSet{}
 }
@@ -123,7 +121,7 @@ func (b *BitSet) or(set *BitSet) {
 	setLen := set.minLen()
 	maxLen := intMax(bLen, setLen)
 	if maxLen > len(b.data) {
-		// Increase the size of len(b.data) to repesent the bits in both sets.
+		// Increase the size of len(b.data) to represent the bits in both sets.
 		data := make([]uint64, maxLen)
 		copy(data, b.data)
 		b.data = data
@@ -161,27 +159,27 @@ func (b *BitSet) equals(other interface{}) bool {
 	if !ok {
 		return false
 	}
-
+	
 	if b == otherBitSet {
 		return true
 	}
-
+	
 	// We only compare set bits, so we cannot rely on the two slices having the same size. Its
 	// possible for two BitSets to have different slice lengths but the same set bits. So we only
 	// compare the relevant words and ignore the trailing zeros.
 	bLen := b.minLen()
 	otherLen := otherBitSet.minLen()
-
+	
 	if bLen != otherLen {
 		return false
 	}
-
+	
 	for i := 0; i < bLen; i++ {
 		if b.data[i] != otherBitSet.data[i] {
 			return false
 		}
 	}
-
+	
 	return true
 }
 
@@ -204,7 +202,7 @@ func (b *BitSet) length() int {
 
 func (b *BitSet) String() string {
 	vals := make([]string, 0, b.length())
-
+	
 	for i, v := range b.data {
 		for v != 0 {
 			n := bits.TrailingZeros64(v)
@@ -212,7 +210,7 @@ func (b *BitSet) String() string {
 			v &= ^(uint64(1) << n)
 		}
 	}
-
+	
 	return "{" + strings.Join(vals, ", ") + "}"
 }
 
@@ -246,39 +244,8 @@ func (a *AltDict) values() []interface{} {
 	return vs
 }
 
-type DoubleDict struct {
-	data map[int]map[int]interface{}
-}
-
-func NewDoubleDict() *DoubleDict {
-	dd := new(DoubleDict)
-	dd.data = make(map[int]map[int]interface{})
-	return dd
-}
-
-func (d *DoubleDict) Get(a, b int) interface{} {
-	data := d.data[a]
-
-	if data == nil {
-		return nil
-	}
-
-	return data[b]
-}
-
-func (d *DoubleDict) set(a, b int, o interface{}) {
-	data := d.data[a]
-
-	if data == nil {
-		data = make(map[int]interface{})
-		d.data[a] = data
-	}
-
-	data[b] = o
-}
-
 func EscapeWhitespace(s string, escapeSpaces bool) string {
-
+	
 	s = strings.Replace(s, "\t", "\\t", -1)
 	s = strings.Replace(s, "\n", "\\n", -1)
 	s = strings.Replace(s, "\r", "\\r", -1)
@@ -288,30 +255,32 @@ func EscapeWhitespace(s string, escapeSpaces bool) string {
 	return s
 }
 
+//goland:noinspection GoUnusedExportedFunction
 func TerminalNodeToStringArray(sa []TerminalNode) []string {
 	st := make([]string, len(sa))
-
+	
 	for i, s := range sa {
 		st[i] = fmt.Sprintf("%v", s)
 	}
-
+	
 	return st
 }
 
+//goland:noinspection GoUnusedExportedFunction
 func PrintArrayJavaStyle(sa []string) string {
 	var buffer bytes.Buffer
-
+	
 	buffer.WriteString("[")
-
+	
 	for i, s := range sa {
 		buffer.WriteString(s)
 		if i != len(sa)-1 {
 			buffer.WriteString(", ")
 		}
 	}
-
+	
 	buffer.WriteString("]")
-
+	
 	return buffer.String()
 }
 
@@ -327,12 +296,12 @@ func murmurUpdate(h int, value int) int {
 	const r2 uint32 = 13
 	const m uint32 = 5
 	const n uint32 = 0xE6546B64
-
+	
 	k := uint32(value)
 	k *= c1
 	k = (k << r1) | (k >> (32 - r1))
 	k *= c2
-
+	
 	hash := uint32(h) ^ k
 	hash = (hash << r2) | (hash >> (32 - r2))
 	hash = hash*m + n
@@ -347,6 +316,6 @@ func murmurFinish(h int, numberOfWords int) int {
 	hash ^= hash >> 13
 	hash *= 0xc2b2ae35
 	hash ^= hash >> 16
-
+	
 	return int(hash)
 }

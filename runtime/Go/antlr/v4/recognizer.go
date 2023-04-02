@@ -7,7 +7,7 @@ package antlr
 import (
 	"fmt"
 	"strings"
-
+	
 	"strconv"
 )
 
@@ -15,10 +15,10 @@ type Recognizer interface {
 	GetLiteralNames() []string
 	GetSymbolicNames() []string
 	GetRuleNames() []string
-
+	
 	Sempred(RuleContext, int, int) bool
 	Precpred(RuleContext, int) bool
-
+	
 	GetState() int
 	SetState(int)
 	Action(RuleContext, int, int)
@@ -26,16 +26,20 @@ type Recognizer interface {
 	RemoveErrorListeners()
 	GetATN() *ATN
 	GetErrorListenerDispatch() ErrorListener
+	HasError() bool
+	GetError() RecognitionException
+	SetError(RecognitionException)
 }
 
 type BaseRecognizer struct {
 	listeners []ErrorListener
 	state     int
-
+	
 	RuleNames       []string
 	LiteralNames    []string
 	SymbolicNames   []string
 	GrammarFileName string
+	SynErr          RecognitionException
 }
 
 func NewBaseRecognizer() *BaseRecognizer {
@@ -45,7 +49,10 @@ func NewBaseRecognizer() *BaseRecognizer {
 	return rec
 }
 
+//goland:noinspection GoUnusedGlobalVariable
 var tokenTypeMapCache = make(map[string]int)
+
+//goland:noinspection GoUnusedGlobalVariable
 var ruleIndexMapCache = make(map[string]int)
 
 func (b *BaseRecognizer) checkVersion(toolVersion string) {
@@ -55,7 +62,19 @@ func (b *BaseRecognizer) checkVersion(toolVersion string) {
 	}
 }
 
-func (b *BaseRecognizer) Action(context RuleContext, ruleIndex, actionIndex int) {
+func (b *BaseRecognizer) SetError(err RecognitionException) {
+	b.SynErr = err
+}
+
+func (b *BaseRecognizer) HasError() bool {
+	return b.SynErr != nil
+}
+
+func (b *BaseRecognizer) GetError() RecognitionException {
+	return b.SynErr
+}
+
+func (b *BaseRecognizer) Action(_ RuleContext, _, _ int) {
 	panic("action not implemented on Recognizer!")
 }
 
@@ -105,11 +124,13 @@ func (b *BaseRecognizer) SetState(v int) {
 //    return result
 //}
 
-// Get a map from rule names to rule indexes.
+// GetRuleIndexMap Get a map from rule names to rule indexes.
 //
-// <p>Used for XPath and tree pattern compilation.</p>
+// Used for XPath and tree pattern compilation.
+//
+// TODO: JI This is not yet implemented in the Go runtime. Maybe not needed.
 func (b *BaseRecognizer) GetRuleIndexMap() map[string]int {
-
+	
 	panic("Method not defined!")
 	//    var ruleNames = b.GetRuleNames()
 	//    if (ruleNames==nil) {
@@ -124,7 +145,8 @@ func (b *BaseRecognizer) GetRuleIndexMap() map[string]int {
 	//    return result
 }
 
-func (b *BaseRecognizer) GetTokenType(tokenName string) int {
+// GetTokenType get the token type based upon its name
+func (b *BaseRecognizer) GetTokenType(_ string) int {
 	panic("Method not defined!")
 	//    var ttype = b.GetTokenTypeMap()[tokenName]
 	//    if (ttype !=nil) {
@@ -162,26 +184,27 @@ func (b *BaseRecognizer) GetTokenType(tokenName string) int {
 //    }
 //}
 
-// What is the error header, normally line/character position information?//
+// GetErrorHeader returns the error header, normally line/character position information.
+//
+// Can be overridden in sub structs embedding BaseRecognizer.
 func (b *BaseRecognizer) GetErrorHeader(e RecognitionException) string {
 	line := e.GetOffendingToken().GetLine()
 	column := e.GetOffendingToken().GetColumn()
 	return "line " + strconv.Itoa(line) + ":" + strconv.Itoa(column)
 }
 
-// How should a token be displayed in an error message? The default
+// GetTokenErrorDisplay shows how a token should be displayed in an error message.
 //
-//	is to display just the text, but during development you might
-//	want to have a lot of information spit out.  Override in that case
-//	to use t.String() (which, for CommonToken, dumps everything about
-//	the token). This is better than forcing you to override a method in
-//	your token objects because you don't have to go modify your lexer
-//	so that it creates a NewJava type.
+// The default is to display just the text, but during development you might
+// want to have a lot of information spit out.  Override in that case
+// to use t.String() (which, for CommonToken, dumps everything about
+// the token). This is better than forcing you to override a method in
+// your token objects because you don't have to go modify your lexer
+// so that it creates a NewJava type.
 //
-// @deprecated This method is not called by the ANTLR 4 Runtime. Specific
-// implementations of {@link ANTLRErrorStrategy} may provide a similar
-// feature when necessary. For example, see
-// {@link DefaultErrorStrategy//GetTokenErrorDisplay}.
+// Deprecated: This method is not called by the ANTLR 4 Runtime. Specific
+// implementations of [ANTLRErrorStrategy] may provide a similar
+// feature when necessary. For example, see [DefaultErrorStrategy].GetTokenErrorDisplay()
 func (b *BaseRecognizer) GetTokenErrorDisplay(t Token) string {
 	if t == nil {
 		return "<no token>"
@@ -197,7 +220,7 @@ func (b *BaseRecognizer) GetTokenErrorDisplay(t Token) string {
 	s = strings.Replace(s, "\t", "\\t", -1)
 	s = strings.Replace(s, "\n", "\\n", -1)
 	s = strings.Replace(s, "\r", "\\r", -1)
-
+	
 	return "'" + s + "'"
 }
 
@@ -205,12 +228,14 @@ func (b *BaseRecognizer) GetErrorListenerDispatch() ErrorListener {
 	return NewProxyErrorListener(b.listeners)
 }
 
-// subclass needs to override these if there are sempreds or actions
-// that the ATN interp needs to execute
-func (b *BaseRecognizer) Sempred(localctx RuleContext, ruleIndex int, actionIndex int) bool {
+// Sempred embedding structs need to override this if there are sempreds or actions
+// that the ATN interpreter needs to execute
+func (b *BaseRecognizer) Sempred(_ RuleContext, _ int, _ int) bool {
 	return true
 }
 
-func (b *BaseRecognizer) Precpred(localctx RuleContext, precedence int) bool {
+// Precpred embedding structs need to override this if there are preceding predicates
+// that the ATN interpreter needs to execute
+func (b *BaseRecognizer) Precpred(_ RuleContext, _ int) bool {
 	return true
 }

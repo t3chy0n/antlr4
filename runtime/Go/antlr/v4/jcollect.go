@@ -38,11 +38,11 @@ type JStore[T any, C Comparator[T]] struct {
 }
 
 func NewJStore[T any, C Comparator[T]](comparator Comparator[T]) *JStore[T, C] {
-
+	
 	if comparator == nil {
 		panic("comparator cannot be nil")
 	}
-
+	
 	s := &JStore[T, C]{
 		store:      make(map[int][]T, 1),
 		comparator: comparator,
@@ -61,10 +61,10 @@ func NewJStore[T any, C Comparator[T]](comparator Comparator[T]) *JStore[T, C] {
 // # If the given value is already present in the store, then the existing value is returned as v and exists is set to true
 //
 // If the given value is not present in the store, then the value is added to the store and returned as v and exists is set to false.
-func (s *JStore[T, C]) Put(value T) (v T, exists bool) { //nolint:ireturn
-
+func (s *JStore[T, C]) Put(value T) (v T, exists bool) {
+	
 	kh := s.comparator.Hash1(value)
-
+	
 	for _, v1 := range s.store[kh] {
 		if s.comparator.Equals2(value, v1) {
 			return v1, true
@@ -78,10 +78,10 @@ func (s *JStore[T, C]) Put(value T) (v T, exists bool) { //nolint:ireturn
 // Get will return the value associated with the key - the type of the key is the same type as the value
 // which would not generally be useful, but this is a specific thing for ANTLR where the key is
 // generated using the object we are going to store.
-func (s *JStore[T, C]) Get(key T) (T, bool) { //nolint:ireturn
-
+func (s *JStore[T, C]) Get(key T) (T, bool) {
+	
 	kh := s.comparator.Hash1(key)
-
+	
 	for _, v := range s.store[kh] {
 		if s.comparator.Equals2(key, v) {
 			return v, true
@@ -91,8 +91,8 @@ func (s *JStore[T, C]) Get(key T) (T, bool) { //nolint:ireturn
 }
 
 // Contains returns true if the given key is present in the store
-func (s *JStore[T, C]) Contains(key T) bool { //nolint:ireturn
-
+func (s *JStore[T, C]) Contains(key T) bool {
+	
 	_, present := s.Get(key)
 	return present
 }
@@ -105,7 +105,7 @@ func (s *JStore[T, C]) SortedSlice(less func(i, j T) bool) []T {
 	sort.Slice(vs, func(i, j int) bool {
 		return less(vs[i], vs[j])
 	})
-
+	
 	return vs
 }
 
@@ -151,7 +151,7 @@ func NewJMap[K, V any, C Comparator[K]](comparator Comparator[K]) *JMap[K, V, C]
 
 func (m *JMap[K, V, C]) Put(key K, val V) {
 	kh := m.comparator.Hash1(key)
-
+	
 	m.store[kh] = append(m.store[kh], &entry[K, V]{key, val})
 	m.len++
 }
@@ -167,7 +167,7 @@ func (m *JMap[K, V, C]) Values() []V {
 }
 
 func (m *JMap[K, V, C]) Get(key K) (V, bool) {
-
+	
 	var none V
 	kh := m.comparator.Hash1(key)
 	for _, e := range m.store[kh] {
@@ -195,4 +195,42 @@ func (m *JMap[K, V, C]) Delete(key K) {
 
 func (m *JMap[K, V, C]) Clear() {
 	m.store = make(map[int][]*entry[K, V])
+}
+
+type JPCMap struct {
+	store *JMap[*PredictionContext, *JMap[*PredictionContext, *PredictionContext, *ObjEqComparator[*PredictionContext]], *ObjEqComparator[*PredictionContext]]
+}
+
+func NewJPCMap() *JPCMap {
+	return &JPCMap{
+		store: NewJMap[*PredictionContext, *JMap[*PredictionContext, *PredictionContext, *ObjEqComparator[*PredictionContext]], *ObjEqComparator[*PredictionContext]](pContextEqInst),
+	}
+}
+
+func (pcm *JPCMap) Get(k1, k2 *PredictionContext) (*PredictionContext, bool) {
+	
+	// Do we have a map stored by k1?
+	//
+	m2, present := pcm.store.Get(k1)
+	if present {
+		// We found a map of values corresponding to k1, so now we need to look up k2 in that map
+		//
+		return m2.Get(k2)
+	}
+	return nil, false
+}
+
+func (pcm *JPCMap) Put(k1, k2, v *PredictionContext) {
+	
+	// First does a map already exist for k1?
+	//
+	if m2, present := pcm.store.Get(k1); present {
+		m2.Put(k2, v)
+	} else {
+		// No map found for k1, so we create it, add in our value, then store is
+		//
+		m2 = NewJMap[*PredictionContext, *PredictionContext, *ObjEqComparator[*PredictionContext]](pContextEqInst)
+		m2.Put(k2, v)
+		pcm.store.Put(k1, m2)
+	}
 }
