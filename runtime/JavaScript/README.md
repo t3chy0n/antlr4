@@ -18,7 +18,8 @@ As such it cannot follow recommended NPM semantic versioning.
 If you install a specific version of antlr4, we strongly recommend you remove the corresponding ^ in your package.json.
 
  
-
+# CommonJS
+This package is a remporary solution for CommonJS imports to work, until PR: https://github.com/antlr/antlr4/pull/4217 wont be merged.
 
 
 

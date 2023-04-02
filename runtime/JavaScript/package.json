@@ -1,5 +1,5 @@
 {
-  "name": "antlr4",
+  "name": "@techyon/antlr4",
   "version": "4.12.0",
   "type": "module",
   "description": "JavaScript runtime for ANTLR4",
