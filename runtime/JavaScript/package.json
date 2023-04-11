@@ -1,5 +1,5 @@
 {
-  "name": "@techyon/antlr4",
+  "name": "antlr4",
   "version": "4.12.0",
   "type": "module",
   "description": "JavaScript runtime for ANTLR4",
@@ -23,7 +23,7 @@
     "@babel/core": "^7.19.1",
     "@babel/eslint-parser": "^7.19.1",
     "@babel/preset-env": "^7.19.4",
-    "@types/node": "^18.7.23",
+    "@typesnode": "^18.7.23",
     "babel-loader": "^8.2.5",
     "c8": "^7.12.0",
     "compression-webpack-plugin": "^10.0.0",
@@ -49,7 +49,19 @@
     "node": ">=16"
   },
   "exports": {
-    "import": "./dist/antlr4.node.mjs",
-    "require": "./dist/antlr4.node.cjs"
-  }
+    ".": {
+      "node": {
+        "types": "src/index.node.d.ts",
+        "import": "./dist/antlr4.node.mjs",
+        "require": "./dist/antlr4.node.cjs",
+        "default": "./dist/antlr4.node.mjs"
+      },
+      "browser": {
+        "types": "src/index.web.d.ts",
+        "import": "./dist/antlr4.web.mjs",
+        "require": "./dist/antlr4.web.cjs",
+        "default": "./dist/antlr4.web.mjs"
+      }
+    }
+  },
 }
